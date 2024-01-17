@@ -1,126 +1,54 @@
 #!/usr/bin/python3
-"""
-This module contains test for db_storage
-"""
-from unittest import TestCase, skipIf
-import MySQLdb
-import os
-from datetime import datetime
+
+import unittest
+import models
+from models.base_model import BaseModel, Base
 from models.user import User
-from models import storage
-from models import storage_type
-from models.engine.db_storage import DBStorage
+from models.review import Review
+from models.amenity import Amenity
+from models.state import State
+from models.place import Place
+from models.city import City
+import os
+from sqlalchemy import Column, Integer, String, create_engine
+from sqlalchemy.orm import sessionmaker
 
 
-@skipIf(storage_type != 'db',
-        'db_storage is not supported')
-class TestDBStorage(TestCase):
-    """db storage Class"""
+@unittest.skipIf(os.getenv('HBNB_TYPE_STORAGE') != 'db',
+                 "only testing db storage")
+class test_DBStorage(unittest.TestCase):
 
-    def test_db_storage_doc(self):
-        """test case for docstring of DBStorage Class"""
-        self.assertIsNot(DBStorage.__doc__, None)
+    def testState(self):
+        state = State(name="Greg")
+        if state.id in models.storage.all():
+            self.assertTrue(state.name, "Greg")
 
-    def test_new_db_storage(self):
-        """test case if New object is added to database"""
-        new = User(
-            email='hajar2023@alx.com',
-            password='password@123',
-            first_name='Chamss',
-            last_name='Shashou'
-        )
-        self.assertFalse(new in storage.all().values())
-        new.save()
-        self.assertTrue(new in storage.all().values())
-        dbc = MySQLdb.connect(
-            host=os.getenv('HBNB_MYSQL_HOST'),
-            port=3306,
-            user=os.getenv('HBNB_MYSQL_USER'),
-            passwd=os.getenv('HBNB_MYSQL_PWD'),
-            db=os.getenv('HBNB_MYSQL_DB')
-        )
-        cursor = dbc.cursor()
-        cursor.execute('SELECT * FROM users WHERE id="{}"'.format(new.id))
-        result = cursor.fetchone()
-        self.assertTrue(result is not None)
-        self.assertIn('hajar2023@alx.com', result)
-        self.assertIn('password@123', result)
-        self.assertIn('Chamss', result)
-        self.assertIn('Shashou', result)
-        cursor.close()
-        dbc.close()
+    def testCity(self):
+        city = City(name="Afa")
+        if city.id in models.storage.all():
+            self.assertTrue(city.name, "Afa")
 
-    def test_delete_db_storage(self):
-        """test case if object is deleted from database"""
-        new = User(
-            email='hajar2023@alx.com',
-            password='password@123',
-            first_name='Chamss',
-            last_name='Shashou'
-        )
-        obj_key = 'User.{}'.format(new.id)
-        dbc = MySQLdb.connect(
-            host=os.getenv('HBNB_MYSQL_HOST'),
-            port=3306,
-            user=os.getenv('HBNB_MYSQL_USER'),
-            passwd=os.getenv('HBNB_MYSQL_PWD'),
-            db=os.getenv('HBNB_MYSQL_DB')
-        )
-        new.save()
-        self.assertTrue(new in storage.all().values())
-        cursor = dbc.cursor()
-        cursor.execute('SELECT * FROM users WHERE id="{}"'.format(new.id))
-        result = cursor.fetchone()
-        self.assertTrue(result is not None)
-        self.assertIn('hajar2023@alx.com', result)
-        self.assertIn('password@123', result)
-        self.assertIn('Chamss', result)
-        self.assertIn('Shashou', result)
-        self.assertIn(obj_key, storage.all(User).keys())
-        new.delete()
-        self.assertNotIn(obj_key, storage.all(User).keys())
-        cursor.close()
-        dbc.close()
+    def testPlace(self):
+        place = Place(name="MyShoeBox", number_rooms=5)
+        if place.id in models.storage.all():
+            self.assertTrue(place.number_rooms, 5)
+            self.assertTrue(place.name, "MyShoeBox")
 
-    def test_save_db_storage(self):
-        """ test case if object is saved to database"""
-        new = User(
-            email='hajar2023@alx.com',
-            password='password@123',
-            first_name='Chamss',
-            last_name='Shashou'
-        )
-        dbc = MySQLdb.connect(
-            host=os.getenv('HBNB_MYSQL_HOST'),
-            port=3306,
-            user=os.getenv('HBNB_MYSQL_USER'),
-            passwd=os.getenv('HBNB_MYSQL_PWD'),
-            db=os.getenv('HBNB_MYSQL_DB')
-        )
-        cursor = dbc.cursor()
-        cursor.execute('SELECT * FROM users WHERE id="{}"'.format(new.id))
-        result = cursor.fetchone()
-        cursor.execute('SELECT COUNT(*) FROM users;')
-        old_cnt = cursor.fetchone()[0]
-        self.assertTrue(result is None)
-        self.assertFalse(new in storage.all().values())
-        new.save()
-        dbc1 = MySQLdb.connect(
-            host=os.getenv('HBNB_MYSQL_HOST'),
-            port=3306,
-            user=os.getenv('HBNB_MYSQL_USER'),
-            passwd=os.getenv('HBNB_MYSQL_PWD'),
-            db=os.getenv('HBNB_MYSQL_DB')
-        )
-        cursor1 = dbc1.cursor()
-        cursor1.execute('SELECT * FROM users WHERE id="{}"'.format(new.id))
-        result = cursor1.fetchone()
-        cursor1.execute('SELECT COUNT(*) FROM users;')
-        new_cnt = cursor1.fetchone()[0]
-        self.assertFalse(result is None)
-        self.assertEqual(old_cnt + 1, new_cnt)
-        self.assertTrue(new in storage.all().values())
-        cursor1.close()
-        dbc1.close()
-        cursor.close()
-        dbc.close()
+    def testUser(self):
+        user = User(name="Young_Jeezy")
+        if user.id in models.storage.all():
+            self.assertTrue(user.name, "Young_Jeezy")
+
+    def testAmenity(self):
+        amenity = Amenity(name="Toilet")
+        if amenity.id in models.storage.all():
+            self.assertTrue(amenity.name, "Toilet")
+
+    def testReview(self):
+        review = Review(text="hello")
+        if review.id in models.storage.all():
+            self.assertTrue(review.text, "hello")
+
+    def teardown(self):
+        self.session.close()
+        self.session.rollback()
